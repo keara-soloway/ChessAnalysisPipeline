@@ -1,4 +1,4 @@
-<tool id="CHAP_chapbook_demo" name="CHAPbook" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" python_template_version="@PYTHON_TEMPLATE_VERSION@" profile="@PROFILE@">
+<tool id="CHAP_chapbook_demo" name="CHAPbook" version="@TOOL_VERSION@+galaxy13" python_template_version="@PYTHON_TEMPLATE_VERSION@" profile="@PROFILE@">
   <macros>
     <import>../macros.xml</import>
   </macros>
@@ -9,8 +9,17 @@
     <requirement type="package" version="1.10.7">pydantic</requirement>
   </requirements>
   <command detect_errors="exit_code"><![CDATA[
+      ## certif-pyspec is not available over any conda channels, so
+      ## pip install the package the first time this tool is run
       pip --exists-action i install certif-pyspec==1.5.3 &&
-      cd '$indir' &&
+
+      ## Create symlinks in the tool directory to all items in the
+      ## input directory provided by the user
+      #import os.path
+      #set $norm_indir = os.path.normpath(str($indir))
+      ln -s $norm_indir/* . &&
+
+      ## Run the pipeline provided
       CHAP --config '$config'
 ]]></command>
   <environment_variables>
