@@ -7,6 +7,7 @@ Description:
 # system modules
 import argparse
 import logging
+import sys
 from yaml import safe_load
 
 # local modules
@@ -78,7 +79,7 @@ def setLogger(log_level="INFO"):
     logger = logging.getLogger(__name__)
     log_level = getattr(logging, log_level.upper())
     logger.setLevel(log_level)
-    log_handler = logging.StreamHandler()
+    log_handler = logging.StreamHandler(sys.stdout)
     log_handler.setFormatter(logging.Formatter(
         '{name:20}: {message}', style='{'))
     logger.addHandler(log_handler)
