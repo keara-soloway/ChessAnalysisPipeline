@@ -152,8 +152,11 @@ class PipelineItem():
             self.logger.error('No implementation of read, write, or process')
 
         method = getattr(self, method_name)
-        allowed_args = inspect.getfullargspec(method).args \
-                       + inspect.getfullargspec(method).kwonlyargs
+        argspec = inspect.getfullargspec(method)
+        allowed_args = argspec.args \
+                       + argspec.kwonlyargs
+        if argspec.varkw is not None:
+            allowed_args += list(kwargs.keys())
         args = {}
         for k, v in kwargs.items():
             if k in allowed_args:
