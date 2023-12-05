@@ -17,8 +17,6 @@ from CHAP.common.reader import (
 )
 from CHAP.common.processor import (
     AsyncProcessor,
-    IntegrationProcessor,
-    IntegrateMapProcessor,
     MapProcessor,
     NexusToNumpyProcessor,
     NexusToXarrayProcessor,

@@ -1,3 +1,8 @@
+config:
+  root: examples/saxswaxs
+  outputdir: output
+  log_level: debug
+
 pipeline:
 
   # Download example data
@@ -8,25 +13,72 @@ pipeline:
   - common.ExtractArchiveWriter:
       filename: examples/saxswaxs
 
-  # Collect map data
-  - common.YAMLReader:
-      filename: examples/saxswaxs/map_1d.yaml
-      schema: common.models.map.MapConfig
-  - common.MapProcessor
+  # Collect / organize raw datasets
+  - common.MapReader:
+      map_config:
+        title: test_1d
+        station: id3b
+        experiment_type: SAXSWAXS
+        sample:
+          name: sample_14_align
+        spec_scans:
+        - spec_file: test_1d
+          scan_numbers:
+          - 1
+        independent_dimensions:
+        - label: samx
+          units: mm
+          data_type: spec_motor
+          name: samx
+        presample_intensity:
+          data_type: scan_column
+          name: ic3
+        dwell_time_actual:
+          data_type: scan_column
+          name: sec_2
+        postsample_intensity:
+          data_type: scan_column
+          name: diode
+      detector_names: 
+        - PIL5
+        - PIL9
+        - PIL11
   - common.NexusWriter:
-      filename: examples/saxswaxs/saxswaxs_map.nxs
+      filename: map.nxs
       force_overwrite: true
+  # # (Or: read in pre-collected / organized raw data)
+  # - common.NexusReader:
+  #     filename: map.nxs
+  #     nxpath: test_1d
 
-  # Integrate map detetcor data
-  - pipeline.MultiplePipelineItem:
-      items:
-        - common.YAMLReader:
-            filename: examples/saxswaxs/map_1d.yaml
-            schema: common.models.map.MapConfig
-        - common.YAMLReader:
-            filename: examples/saxswaxs/integration_saxs_azimuthal.yaml
-            schema: common.models.integration.IntegrationConfig
-  - common.IntegrateMapProcessor
+  # Prepare for integration
+  - saxswaxs.PreIntegrationReader:
+      detectors:
+        - nxfield_path: data/PIL9
+          poni_file: PIL9.poni
+          mask_file: PIL9.tif
+        - nxfield_path: data/PIL11
+          poni_file: PIL11.poni
+          mask_file: PIL11.tif
+
+  # Perform integration
+  - saxswaxs.IntegrationProcessor:
+      config:
+        title: waxs_azimuthal
+        integration_type: azimuthal
+        radial_units: q_A^-1
+        radial_min: 0.0
+        radial_max: 3.33209
+        radial_npt: 200
+        azimuthal_units: chi_deg
+        azimuthal_min: -180 #100
+        azimuthal_max: 180 #360
+        azimuthal_npt: 180
+        error_model: poisson
+        right_handed: true
+
+  # Save results
   - common.NexusWriter:
-      filename: examples/saxswaxs/saxs_azimuthal_integrated.nxs
+      filename: map.nxs
+      nxpath: /
       force_overwrite: true
