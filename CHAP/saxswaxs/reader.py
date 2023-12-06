@@ -26,11 +26,14 @@ class PreIntegrationReader(Reader):
             to be used as a mask on this detector's data -- this is
             the only optional entry).
         :type detectors: list[dict[str, str]]
+        :raises ValueError: If the resulting data loaded from inputs
+            is not valid for use with `saxswaxs.IntegrationProcessor`
         :return: Input data appropriate for use with
             saxswaxs.IntegrationProcessor
         """
-        result = self.load_inputs(data, detectors, kwargs.get('inputdir'))
-        return result
+        results = self.load_inputs(data, detectors, kwargs.get('inputdir'))
+        self.validate(results)
+        return results
 
     def load_inputs(self, data, detectors, inputdir):
         """Validate the arguments supplied by the Pipeline to the
@@ -115,6 +118,31 @@ class PreIntegrationReader(Reader):
 
             results.append(result)
         return results
+
+    def validate(self, results):
+        """Assure that the shapes of masks (if used) match the shape
+        of the corresponding detector data and that the map shapes of
+        multiple detector datasets (if used) match each other.
+
+        :param result: Loaded parameters to validate.
+        :type result: list[dict]
+        :raises ValueError: If there is a mismatch of array shapes in
+            `result`.
+        :returns: None
+        """
+        map_shape = results[0]['data'].shape[:-2]
+        self.logger.debug(f'Validating loaded data (map shape: {map_shape})')
+        for detector in results:
+            _map_shape = detector['data'].shape[:-2]
+            if map_shape != _map_shape:
+                raise ValueError('Detector datasets have different map shapes')
+            if detector.get('mask') is not None:
+                detector_shape = detector['data'].shape[-2:]
+                mask_shape = detector['mask'].shape
+                if detector_shape != mask_shape:
+                    raise ValueError(
+                        f'Shape of mask array ({mask_shape}) does not match '
+                        + f'shape of detector ({detector_shape})')
 
 
 def load_image(filename):
