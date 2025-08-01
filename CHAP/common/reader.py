@@ -69,7 +69,7 @@ class FabioImageReader(Reader):
 
 class H5Reader(Reader):
     """Reader for h5 files."""
-    def read(self, filename, h5path='/', idx=None):
+    def read(self, filename, h5path='/', idx=None, idx_slices=None):
         """Return the data object stored at `h5path` in an h5-file.
 
         :param filename: The name of the h5-file to read from.
@@ -83,9 +83,20 @@ class H5Reader(Reader):
         # Third party modules
         from h5py import File
 
+        if idx is not None and idx_slices is None:
+            use_idx = tuple(idx)
+        elif idx_slices is not None and idx is None:
+            use_idx = tuple(
+                [slice(
+                    s.get('start', 0),
+                    s.get('stop', None),
+                    s.get('step', 1)
+                ) for s in idx_slices])
+        else:
+            use_idx = False
         data = File(filename, 'r')[h5path]
-        if idx is not None:
-            data = data[tuple(idx)]
+        if use_idx:
+            data = data[use_idx]
         return data
 
 
