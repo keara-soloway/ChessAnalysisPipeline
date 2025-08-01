@@ -3370,28 +3370,80 @@ class XarrayToNumpyProcessor(Processor):
         return self.unwrap_pipelinedata(data)[-1].data
 
 
-#class SumProcessor(Processor):
-#    """A Processor to sum the data in a NeXus NXobject, given a set of
-#    nxpaths.
-#    """
-#    def process(self, data):
-#        """Return the summed data array
-#
-#        :param data:
-#        :type data:
-#        :return: The summed data.
-#        :rtype: numpy.ndarray
-#        """
-#        nxentry, nxpaths = self.unwrap_pipelinedata(data)[-1]
-#        if len(nxpaths) == 1:
-#            return nxentry[nxpaths[0]]
-#        sum_data = deepcopy(nxentry[nxpaths[0]])
-#        for nxpath in nxpaths[1:]:
-#            nxdata = nxentry[nxpath]
-#            for entry in nxdata.entries:
-#                sum_data[entry] += nxdata[entry]
-#
-#        return sum_data
+class StackProcessor(Processor):
+    """A Processor to stack multiple input arrays with
+    `numpy.stack`.
+    """
+    def process(self, data, np_stack_kwargs=None):
+        """Stack the multiple input arrays provided.
+
+        :param data: Input data arrays, possibly an output array too.
+        :type data: list[PipelineData]
+        :param np_stack_kwargs: Optional dictionary of keyword
+            arguments to pass to `numpy.stack`. If the dict includes
+            the "out" key, its value should be a string indicating the
+            name of a PipelineData array in `data` to use as the
+            output buffer.
+        :type np_stack_kwargs: dict[str, object], optional
+        :returns: The stacked numpyarray.
+        :rtype: np.ndarray
+        """
+        if np_stack_kwargs is None:
+            np_stack_kwargs = {}
+        out = np_stack_kwargs.pop('out', None)
+        if isinstance(out, str):
+            out = self.get_data(data, name=out)
+        else:
+            out = None
+
+        return np.stack(
+            [d['data'] for d in data],
+            out=out,
+            **np_stack_kwargs,
+        )
+
+
+class SumProcessor(Processor):
+    """A Processor to sum a single input array with `numpy.sum` or
+    `numpy.nansum`.
+    """
+    def process(self, data, nansum=False, np_sum_kwargs=None):
+        """Sum the input data provided.
+
+        :param data: Input data array, possibly an output array too.
+        :type data: list[PipelineData]
+        :param nansum: If True, use `numpy.nansum` instead of
+            `numpy.sum`, which ignores NaN values during summation.
+        :type nansum:
+        :param np_sum_kwargs: Optional dictionary of keyword arguments
+            to pass to the sum function. If the dict includes the
+            "out" key, its value should be a string indicating the
+            name of a PipelineData array in `data` to use as the
+            output buffer.
+        :type np_sum_kwargs: dict[str, object], optional
+        :returns: Summed array.
+        :rtype: np.ndarray
+        """
+        if np_sum_kwargs is None:
+            np_sum_kwargs = {}
+        out = np_sum_kwargs.pop('out', None)
+        if isinstance(out, str):
+            out = self.get_data(data, name=out)
+        else:
+            out = None
+
+        _in = self.unwrap_pipelinedata(data)[-1]
+        if nansum:
+            return np.nansum(
+                _in,
+                out=out,
+                **np_sum_kwargs,
+            )
+        return np.sum(
+            _in,
+            out=out,
+            **np_sum_kwargs,
+        )
 
 
 if __name__ == '__main__':
